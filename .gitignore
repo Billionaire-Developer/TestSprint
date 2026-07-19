@@ -1,0 +1,7 @@
+node_modules/
+*.log
+.env
+backend/quiz.db
+backend/quiz.db-shm
+backend/quiz.db-wal
+frontend/dist/
