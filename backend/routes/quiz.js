@@ -11,6 +11,28 @@ async function getLatestAttempt(userId, subject) {
   );
 }
 
+// GET /api/quiz/leaderboard/:subject — top scores (best attempt per student)
+router.get("/leaderboard/:subject", requireAuth, async (req, res) => {
+  try {
+    const { subject } = req.params;
+    const rows = await dbAll(
+      `SELECT u.username, MAX(r.score) as best_score, r.total_questions, r.taken_at
+       FROM results r
+       JOIN users u ON u.id = r.user_id
+       WHERE r.subject = ?
+       GROUP BY r.user_id
+       ORDER BY best_score DESC, r.taken_at ASC
+       LIMIT 10`,
+      [subject]
+    );
+
+    res.json({ subject, leaderboard: rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 router.get("/:subject/status", requireAuth, async (req, res) => {
   try {
     const { subject } = req.params;

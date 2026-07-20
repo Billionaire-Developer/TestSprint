@@ -33,6 +33,7 @@ export const api = {
     request(`/quiz/${subject}/submit`, { method: "POST", body: JSON.stringify({ answers }) }),
 
   getHistory: () => request("/quiz/results/history"),
+  getLeaderboard: (subject) => request(`/quiz/leaderboard/${subject}`),
 
   getProfile: () => request("/auth/profile"),
 
