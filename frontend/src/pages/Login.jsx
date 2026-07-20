@@ -15,8 +15,8 @@ export default function Login() {
     setLoading(true);
     try {
       const data = await api.login(username, password);
-      api.saveToken(data.token, data.username, data.is_admin);
-      navigate("/");
+      api.saveToken(data.token, data.username, data.is_admin, data.class_name);
+      navigate(data.class_name ? "/" : "/choose-class");
     } catch (err) {
       setError(err.message);
     } finally {

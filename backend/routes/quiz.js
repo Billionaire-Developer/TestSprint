@@ -4,29 +4,61 @@ const { requireAuth } = require("../middleware/auth");
 
 const router = express.Router();
 
-async function getLatestAttempt(userId, subject) {
+async function getOwnClass(userId) {
+  const user = await dbGet("SELECT class_name FROM users WHERE id = ?", [userId]);
+  return user ? user.class_name : null;
+}
+
+function noClassResponse(res) {
+  return res.status(400).json({
+    error: "no_class",
+    message: "Please select your class first."
+  });
+}
+
+async function getLatestAttempt(userId, className, subject) {
   return dbGet(
-    `SELECT * FROM results WHERE user_id = ? AND subject = ? ORDER BY taken_at DESC LIMIT 1`,
-    [userId, subject]
+    `SELECT * FROM results WHERE user_id = ? AND class_name = ? AND subject = ?
+     ORDER BY taken_at DESC LIMIT 1`,
+    [userId, className, subject]
   );
 }
 
-// GET /api/quiz/leaderboard/:subject — top scores (best attempt per student)
+router.get("/subjects", requireAuth, async (req, res) => {
+  try {
+    const className = await getOwnClass(req.user.id);
+    if (!className) return noClassResponse(res);
+
+    const rows = await dbAll(
+      "SELECT DISTINCT subject FROM questions WHERE class_name = ? ORDER BY subject",
+      [className]
+    );
+
+    res.json({ className, subjects: rows.map((r) => r.subject) });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 router.get("/leaderboard/:subject", requireAuth, async (req, res) => {
   try {
     const { subject } = req.params;
+    const className = await getOwnClass(req.user.id);
+    if (!className) return noClassResponse(res);
+
     const rows = await dbAll(
       `SELECT u.username, MAX(r.score) as best_score, r.total_questions, r.taken_at
        FROM results r
        JOIN users u ON u.id = r.user_id
-       WHERE r.subject = ?
+       WHERE r.subject = ? AND r.class_name = ?
        GROUP BY r.user_id
        ORDER BY best_score DESC, r.taken_at ASC
        LIMIT 10`,
-      [subject]
+      [subject, className]
     );
 
-    res.json({ subject, leaderboard: rows });
+    res.json({ subject, className, leaderboard: rows });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
@@ -36,8 +68,11 @@ router.get("/leaderboard/:subject", requireAuth, async (req, res) => {
 router.get("/:subject/status", requireAuth, async (req, res) => {
   try {
     const { subject } = req.params;
-    const currentHash = await computeSubjectHash(subject);
-    const lastAttempt = await getLatestAttempt(req.user.id, subject);
+    const className = await getOwnClass(req.user.id);
+    if (!className) return noClassResponse(res);
+
+    const currentHash = await computeSubjectHash(className, subject);
+    const lastAttempt = await getLatestAttempt(req.user.id, className, subject);
 
     const locked = !!lastAttempt && lastAttempt.version_hash === currentHash;
 
@@ -61,8 +96,11 @@ router.get("/:subject/status", requireAuth, async (req, res) => {
 router.get("/:subject", requireAuth, async (req, res) => {
   try {
     const { subject } = req.params;
-    const currentHash = await computeSubjectHash(subject);
-    const lastAttempt = await getLatestAttempt(req.user.id, subject);
+    const className = await getOwnClass(req.user.id);
+    if (!className) return noClassResponse(res);
+
+    const currentHash = await computeSubjectHash(className, subject);
+    const lastAttempt = await getLatestAttempt(req.user.id, className, subject);
 
     if (lastAttempt && lastAttempt.version_hash === currentHash) {
       return res.status(403).json({
@@ -72,15 +110,17 @@ router.get("/:subject", requireAuth, async (req, res) => {
 
     const questions = await dbAll(
       `SELECT id, subject, question_text, option_a, option_b, option_c, option_d
-       FROM questions WHERE subject = ?`,
-      [subject]
+       FROM questions WHERE class_name = ? AND subject = ?`,
+      [className, subject]
     );
 
     if (questions.length === 0) {
-      return res.status(404).json({ error: `No questions found for subject "${subject}"` });
+      return res.status(404).json({
+        error: `No questions found for subject "${subject}" in your class`
+      });
     }
 
-    res.json({ subject, questions });
+    res.json({ subject, className, questions });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
@@ -91,13 +131,15 @@ router.post("/:subject/submit", requireAuth, async (req, res) => {
   try {
     const { subject } = req.params;
     const { answers } = req.body;
+    const className = await getOwnClass(req.user.id);
+    if (!className) return noClassResponse(res);
 
     if (!Array.isArray(answers) || answers.length === 0) {
       return res.status(400).json({ error: "answers array is required" });
     }
 
-    const currentHash = await computeSubjectHash(subject);
-    const lastAttempt = await getLatestAttempt(req.user.id, subject);
+    const currentHash = await computeSubjectHash(className, subject);
+    const lastAttempt = await getLatestAttempt(req.user.id, className, subject);
     if (lastAttempt && lastAttempt.version_hash === currentHash) {
       return res.status(403).json({
         error: "You've already attempted this test. It unlocks again if the questions are updated."
@@ -106,8 +148,8 @@ router.post("/:subject/submit", requireAuth, async (req, res) => {
 
     const questionRows = await dbAll(
       `SELECT id, question_text, option_a, option_b, option_c, option_d, correct_option
-       FROM questions WHERE subject = ?`,
-      [subject]
+       FROM questions WHERE class_name = ? AND subject = ?`,
+      [className, subject]
     );
 
     const questionLookup = questionRows.reduce((map, q) => {
@@ -134,9 +176,9 @@ router.post("/:subject/submit", requireAuth, async (req, res) => {
     });
 
     await dbRun(
-      `INSERT INTO results (user_id, subject, score, total_questions, version_hash, details_json)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [req.user.id, subject, score, answers.length, currentHash, JSON.stringify(details)]
+      `INSERT INTO results (user_id, subject, class_name, score, total_questions, version_hash, details_json)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [req.user.id, subject, className, score, answers.length, currentHash, JSON.stringify(details)]
     );
 
     res.json({ score, total: answers.length, details });

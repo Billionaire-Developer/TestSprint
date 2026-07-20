@@ -13,7 +13,9 @@ async function request(path, options = {}) {
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
-    throw new Error(data.error || "Request failed");
+    const err = new Error(data.error || "Request failed");
+    err.code = data.error;
+    throw err;
   }
   return data;
 }
@@ -25,6 +27,8 @@ export const api = {
   login: (username, password) =>
     request("/auth/login", { method: "POST", body: JSON.stringify({ username, password }) }),
 
+  getQuizSubjects: () => request("/quiz/subjects"),
+
   getQuestions: (subject) => request(`/quiz/${subject}`),
 
   getQuizStatus: (subject) => request(`/quiz/${subject}/status`),
@@ -33,6 +37,7 @@ export const api = {
     request(`/quiz/${subject}/submit`, { method: "POST", body: JSON.stringify({ answers }) }),
 
   getHistory: () => request("/quiz/results/history"),
+
   getLeaderboard: (subject) => request(`/quiz/leaderboard/${subject}`),
 
   getProfile: () => request("/auth/profile"),
@@ -57,19 +62,32 @@ export const api = {
       body: JSON.stringify({ newPassword })
     }),
 
-  saveToken: (token, username, isAdmin) => {
+  adminSetClass: (userId, className) =>
+    request(`/admin/students/${userId}/set-class`, {
+      method: "POST",
+      body: JSON.stringify({ className })
+    }),
+
+  saveToken: (token, username, isAdmin, className) => {
     localStorage.setItem("token", token);
     localStorage.setItem("username", username);
     localStorage.setItem("isAdmin", isAdmin ? "true" : "false");
+    localStorage.setItem("userClass", className || "");
+  },
+
+  setCachedClass: (className) => {
+    localStorage.setItem("userClass", className || "");
   },
 
   logout: () => {
     localStorage.removeItem("token");
     localStorage.removeItem("username");
     localStorage.removeItem("isAdmin");
+    localStorage.removeItem("userClass");
   },
 
   getUsername: () => localStorage.getItem("username"),
   isLoggedIn: () => !!getToken(),
-  isAdmin: () => localStorage.getItem("isAdmin") === "true"
+  isAdmin: () => localStorage.getItem("isAdmin") === "true",
+  getCachedClass: () => localStorage.getItem("userClass") || ""
 };

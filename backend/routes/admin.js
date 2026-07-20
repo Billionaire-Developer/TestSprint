@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const { dbGet, dbAll, dbRun } = require("../db");
 const { requireAuth } = require("../middleware/auth");
 const { requireAdmin } = require("../middleware/admin");
+const { CLASSES } = require("../constants");
 
 const router = express.Router();
 
@@ -48,6 +49,28 @@ router.post("/students/:id/reset-password", requireAuth, requireAdmin, async (re
     await dbRun("UPDATE users SET password_hash = ? WHERE id = ?", [password_hash, id]);
 
     res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.post("/students/:id/set-class", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { className } = req.body;
+
+    if (!CLASSES.includes(className)) {
+      return res.status(400).json({ error: "Invalid class name" });
+    }
+
+    const user = await dbGet("SELECT id FROM users WHERE id = ?", [id]);
+    if (!user) {
+      return res.status(404).json({ error: "Student not found" });
+    }
+
+    await dbRun("UPDATE users SET class_name = ? WHERE id = ?", [className, id]);
+    res.json({ class_name: className });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });

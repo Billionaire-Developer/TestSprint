@@ -658,6 +658,31 @@ td {
   height: 100px;
 }
 
+.auth-card select,
+.admin-reset-form select {
+  padding: 0.6rem;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 1rem;
+  font-family: inherit;
+  background: white;
+}
+
+.profile-lock-note {
+  font-size: 0.8rem;
+  color: #777;
+  margin: -0.5rem 0 0.3rem 0;
+}
+
+.admin-section-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #777;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin: 0.8rem 0 0.4rem 0;
+}
+
 /* ---------------------------------------------------------- */
 /* Responsive breakpoints                                      */
 /* ---------------------------------------------------------- */

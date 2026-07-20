@@ -15,8 +15,8 @@ export default function Signup() {
     setLoading(true);
     try {
       const data = await api.signup(username, password);
-      api.saveToken(data.token, data.username, data.is_admin);
-      navigate("/");
+      api.saveToken(data.token, data.username, data.is_admin, data.class_name);
+      navigate("/choose-class");
     } catch (err) {
       setError(err.message);
     } finally {

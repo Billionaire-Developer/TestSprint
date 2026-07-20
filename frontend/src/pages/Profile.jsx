@@ -5,7 +5,6 @@ export default function Profile() {
   const [profile, setProfile] = useState(null);
   const [editing, setEditing] = useState(false);
 
-  const [className, setClassName] = useState("");
   const [schoolName, setSchoolName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
 
@@ -23,9 +22,9 @@ export default function Profile() {
     try {
       const data = await api.getProfile();
       setProfile(data.user);
-      setClassName(data.user.class_name || "");
       setSchoolName(data.user.school_name || "");
       setPhoneNumber(data.user.phone_number || "");
+      api.setCachedClass(data.user.class_name || "");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -39,7 +38,6 @@ export default function Profile() {
   }
 
   function cancelEditing() {
-    setClassName(profile.class_name || "");
     setSchoolName(profile.school_name || "");
     setPhoneNumber(profile.phone_number || "");
     setError("");
@@ -51,10 +49,9 @@ export default function Profile() {
     setSaving(true);
     setError("");
     try {
-      await api.updateProfile(className, schoolName, phoneNumber);
+      await api.updateProfile(undefined, schoolName, phoneNumber);
       setProfile({
         ...profile,
-        class_name: className,
         school_name: schoolName,
         phone_number: phoneNumber
       });
@@ -77,7 +74,7 @@ export default function Profile() {
       {!editing ? (
         <div className="profile-view">
           <div className="profile-row">
-            <span className="profile-label">Class / Grade</span>
+            <span className="profile-label">Class</span>
             <span className="profile-value">{profile.class_name || "Not set"}</span>
           </div>
           <div className="profile-row">
@@ -94,13 +91,10 @@ export default function Profile() {
       ) : (
         <form onSubmit={handleSubmit} className="profile-form">
           <label>
-            Class / Grade
-            <input
-              value={className}
-              onChange={(e) => setClassName(e.target.value)}
-              placeholder="e.g. SS2, Grade 10"
-            />
+            Class
+            <input value={profile.class_name || "Not set"} disabled />
           </label>
+          <p className="profile-lock-note">Your class can only be changed by an admin.</p>
           <label>
             School
             <input

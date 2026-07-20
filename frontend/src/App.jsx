@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, Link, useNavigate } from "react-router-dom";
 import { api } from "./api";
 import Login from "./pages/Login.jsx";
 import Signup from "./pages/Signup.jsx";
+import ChooseClass from "./pages/ChooseClass.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Quiz from "./pages/Quiz.jsx";
 import History from "./pages/History.jsx";
@@ -13,6 +14,12 @@ import Admin from "./pages/Admin.jsx";
 
 function ProtectedRoute({ children }) {
   return api.isLoggedIn() ? children : <Navigate to="/login" replace />;
+}
+
+function ClassRoute({ children }) {
+  if (!api.isLoggedIn()) return <Navigate to="/login" replace />;
+  if (!api.getCachedClass()) return <Navigate to="/choose-class" replace />;
+  return children;
 }
 
 function AdminRoute({ children }) {
@@ -51,11 +58,19 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
-          <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/quiz/:subject" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
+          <Route
+            path="/choose-class"
+            element={
+              <ProtectedRoute>
+                <ChooseClass />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/" element={<ClassRoute><Dashboard /></ClassRoute>} />
+          <Route path="/quiz/:subject" element={<ClassRoute><Quiz /></ClassRoute>} />
+          <Route path="/leaderboard" element={<ClassRoute><Leaderboard /></ClassRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/discovery" element={<ProtectedRoute><Discovery /></ProtectedRoute>} />
-          <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
           <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
           <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
         </Routes>

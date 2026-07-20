@@ -1,25 +1,36 @@
 import React, { useEffect, useState } from "react";
 import { api } from "../api";
 
-const SUBJECTS = [
-  { key: "physics", label: "Physics" },
-  { key: "math", label: "Mathematics" },
-  { key: "chemistry", label: "Chemistry" },
-  { key: "biology", label: "Biology" }
-];
-
 const MEDALS = ["🥇", "🥈", "🥉"];
 
 export default function Leaderboard() {
-  const [activeSubject, setActiveSubject] = useState(SUBJECTS[0].key);
+  const [subjects, setSubjects] = useState([]);
+  const [activeSubject, setActiveSubject] = useState("");
   const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingSubjects, setLoadingSubjects] = useState(true);
+  const [loadingRows, setLoadingRows] = useState(false);
   const [error, setError] = useState("");
   const currentUsername = api.getUsername();
 
   useEffect(() => {
-    async function load() {
-      setLoading(true);
+    async function loadSubjects() {
+      try {
+        const data = await api.getQuizSubjects();
+        setSubjects(data.subjects);
+        if (data.subjects.length > 0) setActiveSubject(data.subjects[0]);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoadingSubjects(false);
+      }
+    }
+    loadSubjects();
+  }, []);
+
+  useEffect(() => {
+    if (!activeSubject) return;
+    async function loadRows() {
+      setLoadingRows(true);
       setError("");
       try {
         const data = await api.getLeaderboard(activeSubject);
@@ -27,54 +38,62 @@ export default function Leaderboard() {
       } catch (err) {
         setError(err.message);
       } finally {
-        setLoading(false);
+        setLoadingRows(false);
       }
     }
-    load();
+    loadRows();
   }, [activeSubject]);
 
   return (
     <div className="leaderboard">
       <h1>Leaderboard</h1>
-      <p className="discovery-subtitle">Best score per student, per subject.</p>
+      <p className="discovery-subtitle">Best score per student, per subject, for your class.</p>
 
-      <div className="discovery-tabs">
-        {SUBJECTS.map((s) => (
-          <button
-            key={s.key}
-            className={s.key === activeSubject ? "tab tab-active" : "tab"}
-            onClick={() => setActiveSubject(s.key)}
-          >
-            {s.label}
-          </button>
-        ))}
-      </div>
-
-      {loading ? (
+      {loadingSubjects ? (
         <p>Loading...</p>
-      ) : error ? (
-        <p className="error">{error}</p>
-      ) : rows.length === 0 ? (
-        <p>No attempts yet for this subject.</p>
+      ) : subjects.length === 0 ? (
+        <p>No tests available for your class yet.</p>
       ) : (
-        <div className="leaderboard-list">
-          {rows.map((r, idx) => (
-            <div
-              key={idx}
-              className={
-                r.username === currentUsername
-                  ? "leaderboard-row leaderboard-me"
-                  : "leaderboard-row"
-              }
-            >
-              <span className="leaderboard-rank">{MEDALS[idx] || `#${idx + 1}`}</span>
-              <span className="leaderboard-name">{r.username}</span>
-              <span className="leaderboard-score">
-                {r.best_score} / {r.total_questions}
-              </span>
+        <>
+          <div className="discovery-tabs">
+            {subjects.map((s) => (
+              <button
+                key={s}
+                className={s === activeSubject ? "tab tab-active" : "tab"}
+                onClick={() => setActiveSubject(s)}
+              >
+                {s.charAt(0).toUpperCase() + s.slice(1)}
+              </button>
+            ))}
+          </div>
+
+          {loadingRows ? (
+            <p>Loading...</p>
+          ) : error ? (
+            <p className="error">{error}</p>
+          ) : rows.length === 0 ? (
+            <p>No attempts yet for this subject.</p>
+          ) : (
+            <div className="leaderboard-list">
+              {rows.map((r, idx) => (
+                <div
+                  key={idx}
+                  className={
+                    r.username === currentUsername
+                      ? "leaderboard-row leaderboard-me"
+                      : "leaderboard-row"
+                  }
+                >
+                  <span className="leaderboard-rank">{MEDALS[idx] || `#${idx + 1}`}</span>
+                  <span className="leaderboard-name">{r.username}</span>
+                  <span className="leaderboard-score">
+                    {r.best_score} / {r.total_questions}
+                  </span>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
     </div>
   );

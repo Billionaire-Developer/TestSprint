@@ -1,16 +1,24 @@
 import React, { useEffect, useState } from "react";
 import { api } from "../api";
+import { CLASSES } from "../constants";
 
 export default function Admin() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [expandedId, setExpandedId] = useState(null);
+
   const [resetForId, setResetForId] = useState(null);
   const [newPassword, setNewPassword] = useState("");
   const [resetStatus, setResetStatus] = useState("");
   const [resetSuccess, setResetSuccess] = useState(false);
   const [resetting, setResetting] = useState(false);
+
+  const [classForId, setClassForId] = useState(null);
+  const [newClass, setNewClass] = useState("");
+  const [classStatus, setClassStatus] = useState("");
+  const [classSuccess, setClassSuccess] = useState(false);
+  const [savingClass, setSavingClass] = useState(false);
 
   useEffect(() => {
     loadStudents();
@@ -33,6 +41,9 @@ export default function Admin() {
     setResetForId(null);
     setResetStatus("");
     setResetSuccess(false);
+    setClassForId(null);
+    setClassStatus("");
+    setClassSuccess(false);
   }
 
   function startReset(id) {
@@ -59,6 +70,32 @@ export default function Admin() {
     }
   }
 
+  function startClassChange(id, currentClass) {
+    setClassForId(id);
+    setNewClass(currentClass || "");
+    setClassStatus("");
+    setClassSuccess(false);
+  }
+
+  async function handleClassSubmit(e, userId) {
+    e.preventDefault();
+    setSavingClass(true);
+    setClassStatus("");
+    try {
+      await api.adminSetClass(userId, newClass);
+      setStudents((prev) =>
+        prev.map((s) => (s.id === userId ? { ...s, class_name: newClass } : s))
+      );
+      setClassStatus("Class updated.");
+      setClassSuccess(true);
+    } catch (err) {
+      setClassStatus(err.message);
+      setClassSuccess(false);
+    } finally {
+      setSavingClass(false);
+    }
+  }
+
   if (loading) return <p>Loading students...</p>;
   if (error) return <p className="error">{error}</p>;
 
@@ -67,7 +104,7 @@ export default function Admin() {
       <h1>Students</h1>
       <p className="discovery-subtitle">
         {students.length} registered student{students.length === 1 ? "" : "s"}. Click a row to
-        see their test history or reset their password.
+        see their test history, reset their password, or change their class.
       </p>
 
       <div className="table-scroll">
@@ -120,6 +157,7 @@ export default function Admin() {
                       )}
 
                       <div className="admin-reset-section">
+                        <p className="admin-section-label">Password</p>
                         {resetForId === s.id ? (
                           <form
                             className="admin-reset-form"
@@ -159,8 +197,60 @@ export default function Admin() {
                             Reset password
                           </button>
                         )}
-                        {resetStatus && (
+                        {resetForId === s.id && resetStatus && (
                           <p className={resetSuccess ? "saved-msg" : "error"}>{resetStatus}</p>
+                        )}
+                      </div>
+
+                      <div className="admin-reset-section">
+                        <p className="admin-section-label">Class</p>
+                        {classForId === s.id ? (
+                          <form
+                            className="admin-reset-form"
+                            onSubmit={(e) => handleClassSubmit(e, s.id)}
+                          >
+                            <select
+                              value={newClass}
+                              onChange={(e) => setNewClass(e.target.value)}
+                              onClick={(e) => e.stopPropagation()}
+                              required
+                            >
+                              <option value="" disabled>
+                                Select class
+                              </option>
+                              {CLASSES.map((c) => (
+                                <option key={c} value={c}>
+                                  {c}
+                                </option>
+                              ))}
+                            </select>
+                            <button type="submit" disabled={savingClass}>
+                              {savingClass ? "Saving..." : "Set class"}
+                            </button>
+                            <button
+                              type="button"
+                              className="secondary-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setClassForId(null);
+                              }}
+                            >
+                              Cancel
+                            </button>
+                          </form>
+                        ) : (
+                          <button
+                            className="secondary-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              startClassChange(s.id, s.class_name);
+                            }}
+                          >
+                            Change class
+                          </button>
+                        )}
+                        {classForId === s.id && classStatus && (
+                          <p className={classSuccess ? "saved-msg" : "error"}>{classStatus}</p>
                         )}
                       </div>
                     </td>

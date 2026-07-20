@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { dbGet, dbRun } = require("../db");
 const { JWT_SECRET, requireAuth } = require("../middleware/auth");
+const { CLASSES } = require("../constants");
 
 const router = express.Router();
 
@@ -32,7 +33,7 @@ router.post("/signup", async (req, res) => {
       expiresIn: "7d"
     });
 
-    res.status(201).json({ token, username, is_admin: false });
+    res.status(201).json({ token, username, is_admin: false, class_name: null });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
@@ -61,11 +62,20 @@ router.post("/login", async (req, res) => {
       expiresIn: "7d"
     });
 
-    res.json({ token, username: user.username, is_admin: !!user.is_admin });
+    res.json({
+      token,
+      username: user.username,
+      is_admin: !!user.is_admin,
+      class_name: user.class_name || null
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
   }
+});
+
+router.get("/classes", requireAuth, (req, res) => {
+  res.json({ classes: CLASSES });
 });
 
 router.get("/profile", requireAuth, async (req, res) => {
@@ -90,13 +100,32 @@ router.put("/profile", requireAuth, async (req, res) => {
   try {
     const { class_name, school_name, phone_number } = req.body;
 
+    const current = await dbGet("SELECT class_name FROM users WHERE id = ?", [req.user.id]);
+    if (!current) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    let nextClassName = current.class_name;
+
+    if (class_name !== undefined && class_name !== current.class_name) {
+      if (current.class_name) {
+        return res.status(403).json({
+          error: "Your class is already set. Ask your admin/teacher to change it."
+        });
+      }
+      if (!CLASSES.includes(class_name)) {
+        return res.status(400).json({ error: "Invalid class name" });
+      }
+      nextClassName = class_name;
+    }
+
     await dbRun(
       "UPDATE users SET class_name = ?, school_name = ?, phone_number = ? WHERE id = ?",
-      [class_name || null, school_name || null, phone_number || null, req.user.id]
+      [nextClassName || null, school_name || null, phone_number || null, req.user.id]
     );
 
     res.json({
-      class_name: class_name || null,
+      class_name: nextClassName || null,
       school_name: school_name || null,
       phone_number: phone_number || null
     });
