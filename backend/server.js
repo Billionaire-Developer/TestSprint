@@ -6,8 +6,6 @@ require("./db"); // ensures tables exist + seed data runs on startup
 const authRoutes = require("./routes/auth");
 const quizRoutes = require("./routes/quiz");
 const adminRoutes = require("./routes/admin");
-// ...
-app.use("/api/admin", adminRoutes);
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -21,6 +19,7 @@ app.use(express.json());
 
 app.use("/api/auth", authRoutes);
 app.use("/api/quiz", quizRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.get("/api/health", (req, res) => res.json({ status: "ok" }));
 
