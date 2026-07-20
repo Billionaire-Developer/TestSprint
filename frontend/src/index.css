@@ -511,6 +511,32 @@ td {
   -webkit-overflow-scrolling: touch;
 }
 
+.admin-row {
+  cursor: pointer;
+}
+
+.admin-row:hover {
+  background: #f3f4fb;
+}
+
+.admin-expand-cell {
+  background: #fafafa;
+  padding: 1rem !important;
+}
+
+.admin-no-attempts {
+  color: #777;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.admin-subtable {
+  width: 100%;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
 /* ---------------------------------------------------------- */
 /* Responsive breakpoints                                      */
 /* ---------------------------------------------------------- */

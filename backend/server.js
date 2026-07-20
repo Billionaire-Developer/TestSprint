@@ -5,6 +5,9 @@ require("./db"); // ensures tables exist + seed data runs on startup
 
 const authRoutes = require("./routes/auth");
 const quizRoutes = require("./routes/quiz");
+const adminRoutes = require("./routes/admin");
+// ...
+app.use("/api/admin", adminRoutes);
 
 const app = express();
 const PORT = process.env.PORT || 4000;

@@ -42,16 +42,27 @@ export const api = {
       body: JSON.stringify({ class_name, school_name, phone_number })
     }),
 
-  saveToken: (token, username) => {
+  promoteAdmin: (adminSecret) =>
+    request("/auth/promote-admin", {
+      method: "POST",
+      body: JSON.stringify({ adminSecret })
+    }),
+
+  getAdminStudents: () => request("/admin/students"),
+
+  saveToken: (token, username, isAdmin) => {
     localStorage.setItem("token", token);
     localStorage.setItem("username", username);
+    localStorage.setItem("isAdmin", isAdmin ? "true" : "false");
   },
 
   logout: () => {
     localStorage.removeItem("token");
     localStorage.removeItem("username");
+    localStorage.removeItem("isAdmin");
   },
 
   getUsername: () => localStorage.getItem("username"),
-  isLoggedIn: () => !!getToken()
+  isLoggedIn: () => !!getToken(),
+  isAdmin: () => localStorage.getItem("isAdmin") === "true"
 };

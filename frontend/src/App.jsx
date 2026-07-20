@@ -8,9 +8,16 @@ import Quiz from "./pages/Quiz.jsx";
 import History from "./pages/History.jsx";
 import Discovery from "./pages/Discovery.jsx";
 import Profile from "./pages/Profile.jsx";
+import Admin from "./pages/Admin.jsx";
 
 function ProtectedRoute({ children }) {
   return api.isLoggedIn() ? children : <Navigate to="/login" replace />;
+}
+
+function AdminRoute({ children }) {
+  if (!api.isLoggedIn()) return <Navigate to="/login" replace />;
+  if (!api.isAdmin()) return <Navigate to="/" replace />;
+  return children;
 }
 
 export default function App() {
@@ -25,13 +32,14 @@ export default function App() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <Link to="/" className="brand">TestSprint</Link>
+        <Link to="/" className="brand">Quiz Platform</Link>
         {loggedIn && (
           <nav className="nav-links">
-            <span className="hello">Hello {api.getUsername()}</span>
+            <span className="hello">Hi, {api.getUsername()}</span>
             <Link to="/profile">Profile</Link>
             <Link to="/discovery">Discovery</Link>
             <Link to="/history">History</Link>
+            {api.isAdmin() && <Link to="/admin">Admin</Link>}
             <button onClick={handleLogout} className="link-btn">Log out</button>
           </nav>
         )}
@@ -79,6 +87,14 @@ export default function App() {
               <ProtectedRoute>
                 <History />
               </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <Admin />
+              </AdminRoute>
             }
           />
         </Routes>

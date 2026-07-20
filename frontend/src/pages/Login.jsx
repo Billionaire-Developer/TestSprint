@@ -15,7 +15,7 @@ export default function Login() {
     setLoading(true);
     try {
       const data = await api.login(username, password);
-      api.saveToken(data.token, data.username);
+      api.saveToken(data.token, data.username, data.is_admin);
       navigate("/");
     } catch (err) {
       setError(err.message);

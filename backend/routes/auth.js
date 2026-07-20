@@ -6,7 +6,6 @@ const { JWT_SECRET, requireAuth } = require("../middleware/auth");
 
 const router = express.Router();
 
-// POST /api/auth/signup
 router.post("/signup", (req, res) => {
   const { username, password } = req.body;
 
@@ -31,10 +30,9 @@ router.post("/signup", (req, res) => {
     expiresIn: "7d"
   });
 
-  res.status(201).json({ token, username });
+  res.status(201).json({ token, username, is_admin: false });
 });
 
-// POST /api/auth/login
 router.post("/login", (req, res) => {
   const { username, password } = req.body;
 
@@ -56,23 +54,23 @@ router.post("/login", (req, res) => {
     expiresIn: "7d"
   });
 
-  res.json({ token, username: user.username });
+  res.json({ token, username: user.username, is_admin: !!user.is_admin });
 });
 
-// GET /api/auth/profile — returns the logged-in user's profile info
 router.get("/profile", requireAuth, (req, res) => {
   const user = db
-    .prepare("SELECT username, class_name, school_name, phone_number FROM users WHERE id = ?")
+    .prepare(
+      "SELECT username, class_name, school_name, phone_number, is_admin FROM users WHERE id = ?"
+    )
     .get(req.user.id);
 
   if (!user) {
     return res.status(404).json({ error: "User not found" });
   }
 
-  res.json({ user });
+  res.json({ user: { ...user, is_admin: !!user.is_admin } });
 });
 
-// PUT /api/auth/profile — updates the logged-in user's profile info
 router.put("/profile", requireAuth, (req, res) => {
   const { class_name, school_name, phone_number } = req.body;
 
@@ -85,6 +83,17 @@ router.put("/profile", requireAuth, (req, res) => {
     school_name: school_name || null,
     phone_number: phone_number || null
   });
+});
+
+router.post("/promote-admin", requireAuth, (req, res) => {
+  const { adminSecret } = req.body;
+
+  if (!process.env.ADMIN_SECRET || adminSecret !== process.env.ADMIN_SECRET) {
+    return res.status(403).json({ error: "Invalid admin secret" });
+  }
+
+  db.prepare("UPDATE users SET is_admin = 1 WHERE id = ?").run(req.user.id);
+  res.json({ is_admin: true });
 });
 
 module.exports = router;

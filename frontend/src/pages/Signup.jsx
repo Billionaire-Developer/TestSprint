@@ -15,7 +15,7 @@ export default function Signup() {
     setLoading(true);
     try {
       const data = await api.signup(username, password);
-      api.saveToken(data.token, data.username);
+      api.saveToken(data.token, data.username, data.is_admin);
       navigate("/");
     } catch (err) {
       setError(err.message);

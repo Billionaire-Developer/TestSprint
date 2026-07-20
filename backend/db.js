@@ -52,6 +52,9 @@ if (!userColumns.includes("school_name")) {
 if (!userColumns.includes("phone_number")) {
   db.exec("ALTER TABLE users ADD COLUMN phone_number TEXT");
 }
+if (!userColumns.includes("is_admin")) {
+  db.exec("ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0");
+}
 
 // --- Migration: add version_hash / details_json to results, to support
 // "one attempt per question-set version" and full answer review ---
