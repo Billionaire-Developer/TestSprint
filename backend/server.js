@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 
-require("./db"); // ensures tables exist + seed data runs on startup
+const { initDb } = require("./db");
 
 const authRoutes = require("./routes/auth");
 const quizRoutes = require("./routes/quiz");
@@ -23,6 +23,15 @@ app.use("/api/admin", adminRoutes);
 
 app.get("/api/health", (req, res) => res.json({ status: "ok" }));
 
-app.listen(PORT, () => {
-  console.log(`Quiz platform backend running on http://localhost:${PORT}`);
-});
+// Database setup (schema + migrations + seeding) must finish before we
+// start accepting requests, since Turso is a network database.
+initDb()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Quiz platform backend running on http://localhost:${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error("Failed to initialize database:", err);
+    process.exit(1);
+  });

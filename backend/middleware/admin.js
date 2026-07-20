@@ -1,13 +1,18 @@
-const db = require("../db");
+const { dbGet } = require("../db");
 
-function requireAdmin(req, res, next) {
-  const user = db.prepare("SELECT is_admin FROM users WHERE id = ?").get(req.user.id);
+async function requireAdmin(req, res, next) {
+  try {
+    const user = await dbGet("SELECT is_admin FROM users WHERE id = ?", [req.user.id]);
 
-  if (!user || !user.is_admin) {
-    return res.status(403).json({ error: "Admin access required" });
+    if (!user || !user.is_admin) {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    next();
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
   }
-
-  next();
 }
 
 module.exports = { requireAdmin };
