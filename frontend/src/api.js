@@ -50,6 +50,12 @@ export const api = {
 
   getAdminStudents: () => request("/admin/students"),
 
+  adminResetPassword: (userId, newPassword) =>
+    request(`/admin/students/${userId}/reset-password`, {
+      method: "POST",
+      body: JSON.stringify({ newPassword })
+    }),
+
   saveToken: (token, username, isAdmin) => {
     localStorage.setItem("token", token);
     localStorage.setItem("username", username);

@@ -6,23 +6,57 @@ export default function Admin() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [expandedId, setExpandedId] = useState(null);
+  const [resetForId, setResetForId] = useState(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [resetStatus, setResetStatus] = useState("");
+  const [resetSuccess, setResetSuccess] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
-    async function load() {
-      try {
-        const data = await api.getAdminStudents();
-        setStudents(data.students);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
+    loadStudents();
   }, []);
+
+  async function loadStudents() {
+    setLoading(true);
+    try {
+      const data = await api.getAdminStudents();
+      setStudents(data.students);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   function toggleExpand(id) {
     setExpandedId((prev) => (prev === id ? null : id));
+    setResetForId(null);
+    setResetStatus("");
+    setResetSuccess(false);
+  }
+
+  function startReset(id) {
+    setResetForId(id);
+    setNewPassword("");
+    setResetStatus("");
+    setResetSuccess(false);
+  }
+
+  async function handleResetSubmit(e, userId) {
+    e.preventDefault();
+    setResetting(true);
+    setResetStatus("");
+    try {
+      await api.adminResetPassword(userId, newPassword);
+      setResetStatus("Password updated. Tell the student their new password directly.");
+      setResetSuccess(true);
+      setNewPassword("");
+    } catch (err) {
+      setResetStatus(err.message);
+      setResetSuccess(false);
+    } finally {
+      setResetting(false);
+    }
   }
 
   if (loading) return <p>Loading students...</p>;
@@ -33,7 +67,7 @@ export default function Admin() {
       <h1>Students</h1>
       <p className="discovery-subtitle">
         {students.length} registered student{students.length === 1 ? "" : "s"}. Click a row to
-        see their test history.
+        see their test history or reset their password.
       </p>
 
       <div className="table-scroll">
@@ -84,6 +118,51 @@ export default function Admin() {
                           </tbody>
                         </table>
                       )}
+
+                      <div className="admin-reset-section">
+                        {resetForId === s.id ? (
+                          <form
+                            className="admin-reset-form"
+                            onSubmit={(e) => handleResetSubmit(e, s.id)}
+                          >
+                            <input
+                              type="text"
+                              placeholder="New password (min 4 chars)"
+                              value={newPassword}
+                              onChange={(e) => setNewPassword(e.target.value)}
+                              minLength={4}
+                              required
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                            <button type="submit" disabled={resetting}>
+                              {resetting ? "Saving..." : "Set new password"}
+                            </button>
+                            <button
+                              type="button"
+                              className="secondary-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setResetForId(null);
+                              }}
+                            >
+                              Cancel
+                            </button>
+                          </form>
+                        ) : (
+                          <button
+                            className="secondary-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              startReset(s.id);
+                            }}
+                          >
+                            Reset password
+                          </button>
+                        )}
+                        {resetStatus && (
+                          <p className={resetSuccess ? "saved-msg" : "error"}>{resetStatus}</p>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 )}
