@@ -1,4 +1,4 @@
-const API_BASE = "https://testsprint.onrender.com";
+const API_BASE = "https://testsprint.onrender.com/api";
 
 function getToken() {
   return localStorage.getItem("token");
