@@ -77,4 +77,21 @@ router.post("/students/:id/set-class", requireAuth, requireAdmin, async (req, re
   }
 });
 
+// POST /api/admin/reset-questions
+// One-time utility: wipes the questions table so the next server restart
+// re-seeds it fresh from seedData.js. Use this after fixing/changing
+// seedData.js content that already got (incorrectly) seeded once.
+router.post("/reset-questions", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    await dbRun("DELETE FROM questions");
+    res.json({
+      success: true,
+      message: "Questions table cleared. Restart/redeploy the backend to reseed."
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 module.exports = router;
