@@ -1,0 +1,199 @@
+const express = require("express");
+const bcrypt = require("bcryptjs");
+const { dbGet, dbAll, dbRun } = require("../db");
+const { requireAuth } = require("../middleware/auth");
+const { requireAdmin } = require("../middleware/admin");
+const { CLASSES } = require("../constants");
+
+const router = express.Router();
+
+router.get("/students", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const users = await dbAll(
+      `SELECT id, username, class_name, school_name, phone_number, created_at
+       FROM users ORDER BY created_at DESC`
+    );
+
+    const students = [];
+    for (const u of users) {
+      const attempts = await dbAll(
+        `SELECT subject, score, total_questions, taken_at
+         FROM results WHERE user_id = ? ORDER BY taken_at DESC`,
+        [u.id]
+      );
+      students.push({ ...u, attempts });
+    }
+
+    res.json({ students });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.post("/students/:id/reset-password", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { newPassword } = req.body;
+
+    if (!newPassword || newPassword.length < 4) {
+      return res.status(400).json({ error: "New password must be at least 4 characters" });
+    }
+
+    const user = await dbGet("SELECT id FROM users WHERE id = ?", [id]);
+    if (!user) {
+      return res.status(404).json({ error: "Student not found" });
+    }
+
+    const password_hash = bcrypt.hashSync(newPassword, 10);
+    await dbRun("UPDATE users SET password_hash = ? WHERE id = ?", [password_hash, id]);
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.post("/students/:id/set-class", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { className } = req.body;
+
+    if (!CLASSES.includes(className)) {
+      return res.status(400).json({ error: "Invalid class name" });
+    }
+
+    const user = await dbGet("SELECT id FROM users WHERE id = ?", [id]);
+    if (!user) {
+      return res.status(404).json({ error: "Student not found" });
+    }
+
+    await dbRun("UPDATE users SET class_name = ? WHERE id = ?", [className, id]);
+    res.json({ class_name: className });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// POST /api/admin/reset-questions
+// One-time utility: wipes the questions table so the next server restart
+// re-seeds it fresh from seedData.js. Use this after fixing/changing
+// seedData.js content that already got (incorrectly) seeded once.
+router.post("/reset-questions", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    await dbRun("DELETE FROM questions");
+    res.json({
+      success: true,
+      message: "Questions table cleared. Restart/redeploy the backend to reseed."
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ---------- Notes management ----------
+
+router.get("/notes", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { class: classFilter, subject: subjectFilter } = req.query;
+
+    let sql = "SELECT id, subject, class_name, title, content, created_at, updated_at FROM notes";
+    const conditions = [];
+    const args = [];
+
+    if (classFilter) {
+      conditions.push("class_name = ?");
+      args.push(classFilter);
+    }
+    if (subjectFilter) {
+      conditions.push("subject = ?");
+      args.push(subjectFilter);
+    }
+    if (conditions.length > 0) {
+      sql += " WHERE " + conditions.join(" AND ");
+    }
+    sql += " ORDER BY created_at DESC";
+
+    const notes = await dbAll(sql, args);
+    res.json({ notes });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.post("/notes", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { subject, className, title, content } = req.body;
+
+    if (!subject || !title || !content) {
+      return res.status(400).json({ error: "subject, title, and content are required" });
+    }
+    if (!CLASSES.includes(className)) {
+      return res.status(400).json({ error: "Invalid class name" });
+    }
+
+    const info = await dbRun(
+      `INSERT INTO notes (subject, class_name, title, content, updated_at)
+       VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      [subject.toLowerCase(), className, title, content]
+    );
+
+    res.status(201).json({ id: info.lastInsertRowid });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.put("/notes/:id", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { subject, className, title, content } = req.body;
+
+    if (!subject || !title || !content) {
+      return res.status(400).json({ error: "subject, title, and content are required" });
+    }
+    if (!CLASSES.includes(className)) {
+      return res.status(400).json({ error: "Invalid class name" });
+    }
+
+    const existing = await dbGet("SELECT id FROM notes WHERE id = ?", [id]);
+    if (!existing) {
+      return res.status(404).json({ error: "Note not found" });
+    }
+
+    await dbRun(
+      `UPDATE notes SET subject = ?, class_name = ?, title = ?, content = ?, updated_at = CURRENT_TIMESTAMP
+       WHERE id = ?`,
+      [subject.toLowerCase(), className, title, content, id]
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.delete("/notes/:id", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const existing = await dbGet("SELECT id FROM notes WHERE id = ?", [id]);
+    if (!existing) {
+      return res.status(404).json({ error: "Note not found" });
+    }
+
+    await dbRun("DELETE FROM notes WHERE id = ?", [id]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+module.exports = router;
