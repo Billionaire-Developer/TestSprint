@@ -7,15 +7,10 @@ const authRoutes = require("./routes/auth");
 const quizRoutes = require("./routes/quiz");
 const adminRoutes = require("./routes/admin");
 const notesRoutes = require("./routes/notes");
-// ...
-app.use("/api/notes", notesRoutes);
 
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-// In production, set FRONTEND_ORIGIN to your deployed frontend URL
-// (e.g. https://your-app.vercel.app) so only your frontend can call this API.
-// Locally, with FRONTEND_ORIGIN unset, all origins are allowed for convenience.
 const allowedOrigin = process.env.FRONTEND_ORIGIN;
 app.use(cors(allowedOrigin ? { origin: allowedOrigin } : {}));
 app.use(express.json());
@@ -23,11 +18,10 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/quiz", quizRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/notes", notesRoutes);
 
 app.get("/api/health", (req, res) => res.json({ status: "ok" }));
 
-// Database setup (schema + migrations + seeding) must finish before we
-// start accepting requests, since Turso is a network database.
 initDb()
   .then(() => {
     app.listen(PORT, () => {
