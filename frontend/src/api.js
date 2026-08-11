@@ -11,7 +11,10 @@ async function request(path, options = {}) {
   };
 
   const token = getToken();
-  if (token) headers.Authorization = `Bearer ${token}`;
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
 
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
@@ -42,7 +45,8 @@ export const api = {
       body: JSON.stringify({ username, password }),
     }),
 
-  getQuizSubjects: () => request("/quiz/subjects"),
+  getQuizSubjects: () =>
+    request("/quiz/subjects"),
 
   getQuestions: (subject) =>
     request(`/quiz/${subject}`),
@@ -106,6 +110,7 @@ export const api = {
     }),
 
   // --- Notes (student-facing) ---
+
   getNoteSubjects: () =>
     request("/notes/subjects"),
 
@@ -116,11 +121,17 @@ export const api = {
     request(`/notes/${subject}/${noteId}`),
 
   // --- Notes (admin management) ---
+
   adminGetNotes: (classFilter, subjectFilter) => {
     const params = new URLSearchParams();
 
-    if (classFilter) params.set("class", classFilter);
-    if (subjectFilter) params.set("subject", subjectFilter);
+    if (classFilter) {
+      params.set("class", classFilter);
+    }
+
+    if (subjectFilter) {
+      params.set("subject", subjectFilter);
+    }
 
     const qs = params.toString();
 
@@ -163,6 +174,7 @@ export const api = {
     }),
 
   // --- Videos (student-facing) ---
+
   getVideoSubjects: () =>
     request("/videos/subjects"),
 
@@ -173,11 +185,17 @@ export const api = {
     request(`/videos/${subject}/${videoId}`),
 
   // --- Videos (admin management) ---
+
   adminGetVideos: (classFilter, subjectFilter) => {
     const params = new URLSearchParams();
 
-    if (classFilter) params.set("class", classFilter);
-    if (subjectFilter) params.set("subject", subjectFilter);
+    if (classFilter) {
+      params.set("class", classFilter);
+    }
+
+    if (subjectFilter) {
+      params.set("subject", subjectFilter);
+    }
 
     const qs = params.toString();
 
@@ -229,6 +247,7 @@ export const api = {
     }),
 
   // --- Local storage ---
+
   saveToken: (
     token,
     username,
