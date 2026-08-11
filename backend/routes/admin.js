@@ -196,4 +196,111 @@ router.delete("/notes/:id", requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
+// ---------- Video management ----------
+// Videos are stored as LINKS (YouTube/Google Drive/etc), never as uploaded
+// files — this server has nowhere to store large video files. The person
+// uploads the video to YouTube (Unlisted) or Drive themselves, then pastes
+// the link here.
+
+router.get("/videos", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { class: classFilter, subject: subjectFilter } = req.query;
+
+    let sql =
+      "SELECT id, subject, class_name, title, video_url, description, created_at, updated_at FROM videos";
+    const conditions = [];
+    const args = [];
+
+    if (classFilter) {
+      conditions.push("class_name = ?");
+      args.push(classFilter);
+    }
+    if (subjectFilter) {
+      conditions.push("subject = ?");
+      args.push(subjectFilter);
+    }
+    if (conditions.length > 0) {
+      sql += " WHERE " + conditions.join(" AND ");
+    }
+    sql += " ORDER BY created_at DESC";
+
+    const videos = await dbAll(sql, args);
+    res.json({ videos });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.post("/videos", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { subject, className, title, videoUrl, description } = req.body;
+
+    if (!subject || !title || !videoUrl) {
+      return res.status(400).json({ error: "subject, title, and videoUrl are required" });
+    }
+    if (!CLASSES.includes(className)) {
+      return res.status(400).json({ error: "Invalid class name" });
+    }
+
+    const info = await dbRun(
+      `INSERT INTO videos (subject, class_name, title, video_url, description, updated_at)
+       VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      [subject.toLowerCase(), className, title, videoUrl, description || null]
+    );
+
+    res.status(201).json({ id: info.lastInsertRowid });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.put("/videos/:id", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { subject, className, title, videoUrl, description } = req.body;
+
+    if (!subject || !title || !videoUrl) {
+      return res.status(400).json({ error: "subject, title, and videoUrl are required" });
+    }
+    if (!CLASSES.includes(className)) {
+      return res.status(400).json({ error: "Invalid class name" });
+    }
+
+    const existing = await dbGet("SELECT id FROM videos WHERE id = ?", [id]);
+    if (!existing) {
+      return res.status(404).json({ error: "Video not found" });
+    }
+
+    await dbRun(
+      `UPDATE videos SET subject = ?, class_name = ?, title = ?, video_url = ?, description = ?, updated_at = CURRENT_TIMESTAMP
+       WHERE id = ?`,
+      [subject.toLowerCase(), className, title, videoUrl, description || null, id]
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.delete("/videos/:id", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const existing = await dbGet("SELECT id FROM videos WHERE id = ?", [id]);
+    if (!existing) {
+      return res.status(404).json({ error: "Video not found" });
+    }
+
+    await dbRun("DELETE FROM videos WHERE id = ?", [id]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 module.exports = router;

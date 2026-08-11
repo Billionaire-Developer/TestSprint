@@ -7,10 +7,10 @@ const authRoutes = require("./routes/auth");
 const quizRoutes = require("./routes/quiz");
 const adminRoutes = require("./routes/admin");
 const notesRoutes = require("./routes/notes");
-
-const app = express();
+const videosRoutes = require("./routes/videos")
+const app = express(); 
 const PORT = process.env.PORT || 4000;
-
+app.use("/api/videos", videosRoutes);
 const allowedOrigin = process.env.FRONTEND_ORIGIN;
 app.use(cors(allowedOrigin ? { origin: allowedOrigin } : {}));
 app.use(express.json());

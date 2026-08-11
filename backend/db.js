@@ -93,6 +93,19 @@ async function initDb() {
     )
   `);
 
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS videos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      subject TEXT NOT NULL,
+      class_name TEXT NOT NULL,
+      title TEXT NOT NULL,
+      video_url TEXT NOT NULL,
+      description TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   const userColumns = await tableColumns("users");
   if (!userColumns.includes("class_name")) {
     await client.execute("ALTER TABLE users ADD COLUMN class_name TEXT");

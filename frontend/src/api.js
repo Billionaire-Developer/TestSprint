@@ -131,3 +131,28 @@ export const api = {
   getCachedClass: () => localStorage.getItem("userClass") || "",
   getCachedSchool: () => localStorage.getItem("userSchool") || ""
 };
+
+// --- Videos (student-facing) ---
+  getVideoSubjects: () => request("/videos/subjects"),
+  getVideosForSubject: (subject) => request(`/videos/${subject}`),
+  getVideo: (subject, videoId) => request(`/videos/${subject}/${videoId}`),
+
+  // --- Videos (admin management) ---
+  adminGetVideos: (classFilter, subjectFilter) => {
+    const params = new URLSearchParams();
+    if (classFilter) params.set("class", classFilter);
+    if (subjectFilter) params.set("subject", subjectFilter);
+    const qs = params.toString();
+    return request(`/admin/videos${qs ? `?${qs}` : ""}`);
+  },
+  adminCreateVideo: (subject, className, title, videoUrl, description) =>
+    request("/admin/videos", {
+      method: "POST",
+      body: JSON.stringify({ subject, className, title, videoUrl, description })
+    }),
+  adminUpdateVideo: (id, subject, className, title, videoUrl, description) =>
+    request(`/admin/videos/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({ subject, className, title, videoUrl, description })
+    }),
+  adminDeleteVideo: (id) => request(`/admin/videos/${id}`, { method: "DELETE" }),

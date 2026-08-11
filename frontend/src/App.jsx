@@ -9,10 +9,12 @@ import Quiz from "./pages/Quiz.jsx";
 import History from "./pages/History.jsx";
 import Discovery from "./pages/Discovery.jsx";
 import Leaderboard from "./pages/Leaderboard.jsx";
+import Notes from "./pages/Notes.jsx";
+import Videos from "./pages/Videos.jsx";
 import Profile from "./pages/Profile.jsx";
 import Admin from "./pages/Admin.jsx";
-import Notes from "./pages/Notes.jsx";
 import AdminNotes from "./pages/AdminNotes.jsx";
+import AdminVideos from "./pages/AdminVideos.jsx";
 
 function ProtectedRoute({ children }) {
   return api.isLoggedIn() ? children : <Navigate to="/login" replace />;
@@ -20,7 +22,9 @@ function ProtectedRoute({ children }) {
 
 function ClassRoute({ children }) {
   if (!api.isLoggedIn()) return <Navigate to="/login" replace />;
-  if (!api.getCachedClass()) return <Navigate to="/choose-class" replace />;
+  if (!api.getCachedClass() || !api.getCachedSchool()) {
+    return <Navigate to="/choose-class" replace />;
+  }
   return children;
 }
 
@@ -47,13 +51,14 @@ export default function App() {
           <nav className="nav-links">
             <span className="hello">Hi, {api.getUsername()}</span>
             <Link to="/profile">Profile</Link>
+            <Link to="/notes">Notes</Link>
+            <Link to="/videos">Videos</Link>
             <Link to="/discovery">Discovery</Link>
             <Link to="/leaderboard">Leaderboard</Link>
             <Link to="/history">History</Link>
-            <Link to="/notes">Notes</Link>
-            {/* ... */}
-            {api.isAdmin() && <Link to="/admin/notes">Manage Notes</Link>}
             {api.isAdmin() && <Link to="/admin">Admin</Link>}
+            {api.isAdmin() && <Link to="/admin/notes">Manage Notes</Link>}
+            {api.isAdmin() && <Link to="/admin/videos">Manage Videos</Link>}
             <button onClick={handleLogout} className="link-btn">Log out</button>
           </nav>
         )}
@@ -74,12 +79,14 @@ export default function App() {
           <Route path="/" element={<ClassRoute><Dashboard /></ClassRoute>} />
           <Route path="/quiz/:subject" element={<ClassRoute><Quiz /></ClassRoute>} />
           <Route path="/leaderboard" element={<ClassRoute><Leaderboard /></ClassRoute>} />
+          <Route path="/notes" element={<ClassRoute><Notes /></ClassRoute>} />
+          <Route path="/videos" element={<ClassRoute><Videos /></ClassRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/discovery" element={<ProtectedRoute><Discovery /></ProtectedRoute>} />
           <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
           <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
-          <Route path="/notes" element={<ClassRoute><Notes /></ClassRoute>} />
           <Route path="/admin/notes" element={<AdminRoute><AdminNotes /></AdminRoute>} />
+          <Route path="/admin/videos" element={<AdminRoute><AdminVideos /></AdminRoute>} />
         </Routes>
       </main>
     </div>
