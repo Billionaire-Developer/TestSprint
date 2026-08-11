@@ -44,9 +44,11 @@ export const api = {
 
   getQuizSubjects: () => request("/quiz/subjects"),
 
-  getQuestions: (subject) => request(`/quiz/${subject}`),
+  getQuestions: (subject) =>
+    request(`/quiz/${subject}`),
 
-  getQuizStatus: (subject) => request(`/quiz/${subject}/status`),
+  getQuizStatus: (subject) =>
+    request(`/quiz/${subject}/status`),
 
   submitQuiz: (subject, answers) =>
     request(`/quiz/${subject}/submit`, {
@@ -54,12 +56,14 @@ export const api = {
       body: JSON.stringify({ answers }),
     }),
 
-  getHistory: () => request("/quiz/results/history"),
+  getHistory: () =>
+    request("/quiz/results/history"),
 
   getLeaderboard: (subject) =>
     request(`/quiz/leaderboard/${subject}`),
 
-  getProfile: () => request("/auth/profile"),
+  getProfile: () =>
+    request("/auth/profile"),
 
   updateProfile: (class_name, school_name, phone_number) =>
     request("/auth/profile", {
@@ -77,7 +81,8 @@ export const api = {
       body: JSON.stringify({ adminSecret }),
     }),
 
-  getAdminStudents: () => request("/admin/students"),
+  getAdminStudents: () =>
+    request("/admin/students"),
 
   getAdminSchoolsSummary: () =>
     request("/admin/schools-summary"),
@@ -119,7 +124,9 @@ export const api = {
 
     const qs = params.toString();
 
-    return request(`/admin/notes${qs ? `?${qs}` : ""}`);
+    return request(
+      `/admin/notes${qs ? `?${qs}` : ""}`
+    );
   },
 
   adminCreateNote: (subject, className, title, content) =>
@@ -133,7 +140,13 @@ export const api = {
       }),
     }),
 
-  adminUpdateNote: (id, subject, className, title, content) =>
+  adminUpdateNote: (
+    id,
+    subject,
+    className,
+    title,
+    content
+  ) =>
     request(`/admin/notes/${id}`, {
       method: "PUT",
       body: JSON.stringify({
@@ -168,7 +181,9 @@ export const api = {
 
     const qs = params.toString();
 
-    return request(`/admin/videos${qs ? `?${qs}` : ""}`);
+    return request(
+      `/admin/videos${qs ? `?${qs}` : ""}`
+    );
   },
 
   adminCreateVideo: (
@@ -214,23 +229,41 @@ export const api = {
     }),
 
   // --- Local storage ---
-  saveToken: (token, username, isAdmin, className, schoolName) => {
+  saveToken: (
+    token,
+    username,
+    isAdmin,
+    className,
+    schoolName
+  ) => {
     localStorage.setItem("token", token);
     localStorage.setItem("username", username);
     localStorage.setItem(
       "isAdmin",
       isAdmin ? "true" : "false"
     );
-    localStorage.setItem("userClass", className || "");
-    localStorage.setItem("userSchool", schoolName || "");
+    localStorage.setItem(
+      "userClass",
+      className || ""
+    );
+    localStorage.setItem(
+      "userSchool",
+      schoolName || ""
+    );
   },
 
   setCachedClass: (className) => {
-    localStorage.setItem("userClass", className || "");
+    localStorage.setItem(
+      "userClass",
+      className || ""
+    );
   },
 
   setCachedSchool: (schoolName) => {
-    localStorage.setItem("userSchool", schoolName || "");
+    localStorage.setItem(
+      "userSchool",
+      schoolName || ""
+    );
   },
 
   logout: () => {
